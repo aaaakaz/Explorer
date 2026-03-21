@@ -1,0 +1,10 @@
+.env
+writable/cache/*
+writable/logs/*
+writable/session/*
+!writable/cache/.gitkeep
+!writable/logs/.gitkeep
+!writable/session/.gitkeep
+vendor/
+.DS_Store
+Thumbs.db
