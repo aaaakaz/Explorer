@@ -8,3 +8,4 @@ writable/session/*
 vendor/
 .DS_Store
 Thumbs.db
+writable/debugbar/*
