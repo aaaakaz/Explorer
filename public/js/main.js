@@ -277,9 +277,11 @@ const PlacesGrid = {
     if (reset) s.page = 1;
 
     const params = new URLSearchParams({
-      category: s.category,
-      sort:     s.sort,
-      q:        s.search,
+      category: s.category || '',
+      sort:     s.sort     || 'newest',
+      q:        s.search   || '',
+      price:    s.price    || '',
+      rating:   s.rating   || 0,
       page:     s.page,
     });
 
@@ -336,6 +338,104 @@ document.getElementById('sortSelect')?.addEventListener('change', function() {
 
 // Load more
 document.getElementById('loadMoreBtn')?.addEventListener('click', () => PlacesGrid.load(false));
+
+/* ── Price filter ─────────────────────────────────────────── */
+document.querySelectorAll('.price-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.price-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (window.PlacesState) { window.PlacesState.price = btn.dataset.price; window.PlacesState.page = 1; }
+    updateActiveFilters();
+    PlacesGrid.load(true);
+  });
+});
+
+/* ── Rating filter ───────────────────────────────────────── */
+document.querySelectorAll('.rating-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (window.PlacesState) { window.PlacesState.rating = parseFloat(btn.dataset.rating) || 0; window.PlacesState.page = 1; }
+    updateActiveFilters();
+    PlacesGrid.load(true);
+  });
+});
+
+/* ── Clear all filters ───────────────────────────────────── */
+document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
+  document.querySelectorAll('.price-btn').forEach((b,i)  => b.classList.toggle('active', i===0));
+  document.querySelectorAll('.rating-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('.cat-btn').forEach((b,i)    => b.classList.toggle('active', i===0));
+  const ss = document.getElementById('sortSelect');
+  if (ss) ss.value = 'newest';
+  if (window.PlacesState) {
+    window.PlacesState.price    = '';
+    window.PlacesState.rating   = 0;
+    window.PlacesState.category = '';
+    window.PlacesState.sort     = 'newest';
+    window.PlacesState.search   = '';
+    window.PlacesState.page     = 1;
+  }
+  const si = document.getElementById('sideSearch');
+  if (si) si.value = '';
+  updateActiveFilters();
+  PlacesGrid.load(true);
+});
+
+/* ── Active filter tags ──────────────────────────────────── */
+function updateActiveFilters() {
+  const block = document.getElementById('activeFiltersBlock');
+  const tags  = document.getElementById('activeFilterTags');
+  if (!block || !tags || !window.PlacesState) return;
+  const s = window.PlacesState;
+  const labels = [];
+
+  if (s.price) {
+    const names = {'1':'Free','2':'£ Budget','3':'££ Moderate','4':'£££ Expensive'};
+    labels.push({ label: names[s.price] || s.price, clear: () => {
+      document.querySelectorAll('.price-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+      s.price = '';
+    }});
+  }
+  if (s.rating > 0) {
+    labels.push({ label: s.rating + '+ stars', clear: () => {
+      document.querySelectorAll('.rating-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+      s.rating = 0;
+    }});
+  }
+  if (s.category) {
+    labels.push({ label: s.category, clear: () => {
+      document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+      s.category = '';
+    }});
+  }
+  if (s.search) {
+    labels.push({ label: '"' + s.search + '"', clear: () => {
+      s.search = '';
+      const si = document.getElementById('sideSearch');
+      if (si) si.value = '';
+    }});
+  }
+
+  if (labels.length) {
+    block.classList.remove('d-none');
+    tags.innerHTML = labels.map((l,i) => `
+      <span class="filter-tag">${l.label}
+        <button data-idx="${i}" title="Remove">×</button>
+      </span>`).join('');
+    tags.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        labels[parseInt(btn.dataset.idx)].clear();
+        s.page = 1;
+        updateActiveFilters();
+        PlacesGrid.load(true);
+      });
+    });
+  } else {
+    block.classList.add('d-none');
+    tags.innerHTML = '';
+  }
+}
 
 // ── View toggle ───────────────────────────────────────────────
 const gridBtn = document.getElementById('gridViewBtn');
@@ -673,3 +773,42 @@ function closeLightbox() {
 const styleEl = document.createElement('style');
 styleEl.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}';
 document.head.appendChild(styleEl);
+/* ================================================================
+   FAVOURITE / SAVE TOGGLE
+================================================================ */
+async function toggleFav(btn) {
+    const placeId = btn.dataset.placeId;
+    const icon    = btn.querySelector('i');
+    const isSaved = btn.classList.contains('saved');
+
+    // Optimistic UI update
+    btn.classList.toggle('saved');
+    icon.className = btn.classList.contains('saved') ? 'bi bi-heart-fill' : 'bi bi-heart';
+
+    try {
+        const fd = new FormData();
+        fd.append('place_id', placeId);
+        const res  = await fetch(`${BASE_URL}places/favourite`, { method: 'POST', body: fd });
+
+        if (res.status === 401) {
+            // Not logged in — revert and redirect
+            btn.classList.toggle('saved');
+            icon.className = isSaved ? 'bi bi-heart-fill' : 'bi bi-heart';
+            window.location.href = `${BASE_URL}login`;
+            return;
+        }
+
+        const data = await res.json();
+        if (data.saved !== undefined) {
+            // Confirm server state
+            btn.classList.toggle('saved', data.saved);
+            icon.className = data.saved ? 'bi bi-heart-fill' : 'bi bi-heart';
+            toast(data.saved ? '❤️ Place saved!' : 'Removed from saved places', data.saved ? 'success' : 'dark');
+        }
+    } catch {
+        // Revert on error
+        btn.classList.toggle('saved');
+        icon.className = isSaved ? 'bi bi-heart-fill' : 'bi bi-heart';
+        toast('Something went wrong. Try again.', 'danger');
+    }
+}

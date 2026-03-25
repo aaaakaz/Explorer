@@ -62,6 +62,58 @@
           </select>
         </div>
 
+        <!-- Price Range -->
+        <div class="filter-block">
+          <h6 class="filter-heading"><i class="bi bi-currency-pound me-2"></i>Price Range</h6>
+          <div class="d-flex flex-column gap-1">
+            <button class="price-btn active" data-price=""><i class="bi bi-check2 me-1"></i>Any Price</button>
+            <button class="price-btn" data-price="1"><span class="price-label free">Free</span> — Free entry</button>
+            <button class="price-btn" data-price="2"><span class="price-label budget">£</span> — Budget friendly</button>
+            <button class="price-btn" data-price="3"><span class="price-label moderate">££</span> — Moderate</button>
+            <button class="price-btn" data-price="4"><span class="price-label expensive">£££</span> — Expensive</button>
+          </div>
+        </div>
+
+        <!-- Minimum Rating -->
+        <div class="filter-block">
+          <h6 class="filter-heading"><i class="bi bi-star me-2"></i>Minimum Rating</h6>
+          <div class="d-flex flex-column gap-1">
+            <button class="rating-btn active" data-rating="0"><i class="bi bi-check2 me-1"></i>Any Rating</button>
+            <button class="rating-btn" data-rating="3">
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <span class="ms-1 small text-muted">3+ stars</span>
+            </button>
+            <button class="rating-btn" data-rating="4">
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <span class="ms-1 small text-muted">4+ stars</span>
+            </button>
+            <button class="rating-btn" data-rating="4.5">
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-fill text-warning"></i>
+              <i class="bi bi-star-half text-warning"></i>
+              <span class="ms-1 small text-muted">4.5+ stars</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active filters summary -->
+        <div class="filter-block d-none" id="activeFiltersBlock">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="filter-heading mb-0">Active Filters</span>
+            <button class="btn btn-sm btn-outline-danger" id="clearFiltersBtn">
+              <i class="bi bi-x me-1"></i>Clear All
+            </button>
+          </div>
+          <div id="activeFilterTags" class="mt-2 d-flex flex-wrap gap-1"></div>
+        </div>
+
       </div>
     </div>
 
@@ -123,5 +175,7 @@ window.PlacesState = {
   search:   '<?= esc($search) ?>',
   page:     1,
   total:    <?= $total ?>,
+  price:    '',
+  rating:   0,
 };
 </script>

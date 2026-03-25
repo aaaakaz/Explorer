@@ -13,17 +13,22 @@ class PlaceModel extends Model {
     ];
 
     private function baseQuery() {
-        return $this->db->table('places p')
-            ->select('p.*, c.name AS category_name, c.slug AS category_slug,
-                      c.icon AS category_icon, c.color AS category_color,
-                      IFNULL(AVG(r.rating),0) AS avg_rating,
-                      COUNT(r.id) AS review_count')
-            ->join('categories c', 'c.id = p.category_id', 'left')
-            ->join('reviews r', 'r.place_id = p.id', 'left')
-            ->groupBy('p.id');
-    }
+    $userId = session()->get('user_id');
+    $savedSelect = $userId
+        ? ", (SELECT COUNT(*) FROM favourites f WHERE f.place_id = p.id AND f.user_id = {$userId}) AS is_saved"
+        : ', 0 AS is_saved';
 
-    public function getFiltered(string $category='', string $sort='newest', string $search='', int $limit=9, int $offset=0): array {
+    return $this->db->table('places p')
+        ->select('p.*, c.name AS category_name, c.slug AS category_slug,
+                  c.icon AS category_icon, c.color AS category_color,
+                  IFNULL(AVG(r.rating),0) AS avg_rating,
+                  COUNT(r.id) AS review_count' . $savedSelect)
+        ->join('categories c', 'c.id = p.category_id', 'left')
+        ->join('reviews r', 'r.place_id = p.id', 'left')
+        ->groupBy('p.id');
+}
+
+    public function getFiltered(string $category='', string $sort='newest', string $search='', int $limit=9, int $offset=0, string $price='', float $rating=0): array {
         $q = $this->baseQuery();
         if ($category && $category !== 'all') $q->where('c.slug', $category);
         if ($search) {
@@ -32,6 +37,8 @@ class PlaceModel extends Model {
               ->orLike('p.tags',$search)->orLike('p.description',$search)->orLike('p.country',$search)
               ->groupEnd();
         }
+        if ($price !== '') $q->where('p.price_range', (int)$price);
+        if ($rating > 0)   $q->having('avg_rating >=', $rating);
         match($sort) {
             'rating'   => $q->orderBy('avg_rating','DESC'),
             'name_asc' => $q->orderBy('p.name','ASC'),
@@ -41,8 +48,21 @@ class PlaceModel extends Model {
         return $q->limit($limit, $offset)->get()->getResultArray();
     }
 
-    public function countFiltered(string $category='', string $search=''): int {
-        $q = $this->db->table('places p')->join('categories c','c.id = p.category_id','left');
+    public function countFiltered(string $category='', string $search='', string $price='', float $rating=0): int {
+        // For rating filter we need a subquery — avoids duplicate 'id' column from joining reviews
+        if ($rating > 0) {
+            $ids = $this->db->table('places p2')
+                ->select('p2.id AS place_id')
+                ->join('reviews r2', 'r2.place_id = p2.id', 'left')
+                ->groupBy('p2.id')
+                ->having('IFNULL(AVG(r2.rating),0) >=', $rating)
+                ->get()->getResultArray();
+            $matchIds = array_column($ids, 'place_id') ?: [0];
+        }
+
+        $q = $this->db->table('places p')
+            ->join('categories c', 'c.id = p.category_id', 'left');
+
         if ($category && $category !== 'all') $q->where('c.slug', $category);
         if ($search) {
             $q->groupStart()
@@ -50,6 +70,9 @@ class PlaceModel extends Model {
               ->orLike('p.tags',$search)->orLike('p.country',$search)
               ->groupEnd();
         }
+        if ($price !== '') $q->where('p.price_range', (int)$price);
+        if ($rating > 0)   $q->whereIn('p.id', $matchIds);
+
         return (int)$q->countAllResults();
     }
 
