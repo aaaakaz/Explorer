@@ -6,7 +6,7 @@ class UserModel extends Model {
     protected $table         = 'users';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['username','email','password_hash','avatar_color'];
+    protected $allowedFields = ['username','email','password_hash','avatar_color','avatar_url'];
 
     public function findByEmail(string $email): ?array {
         return $this->where('email', $email)->first();

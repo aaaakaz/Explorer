@@ -35,3 +35,8 @@ $routes->get('/logout',               'Auth::logout');
 $routes->get('/profile',         'Profile::index');
 $routes->post('/profile/update', 'Profile::update');
 $routes->post('/profile/avatar', 'Profile::avatar');
+$routes->post('/profile/upload-avatar', 'Profile::uploadAvatar');
+$routes->post('/profile/remove-avatar', 'Profile::removeAvatar');
+$routes->get('/profile/avatar-img/(:segment)', 'Profile::avatarImg/$1');
+
+$routes->post('/places/favourite', 'Places::favourite');

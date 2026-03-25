@@ -163,4 +163,92 @@ $savedCount = count($savedPlaces);
         session()->setFlashdata('success', 'Avatar colour updated!');
         return redirect()->to(base_url('profile'));
     }
+
+    // POST /profile/upload-avatar ─────────────────────────────
+    public function uploadAvatar(): \CodeIgniter\HTTP\RedirectResponse {
+        if ($r = $this->requireLogin()) return $r;
+
+        $userId = session()->get('user_id');
+        $file   = $this->request->getFile('avatar_image');
+
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            session()->setFlashdata('error', 'No file uploaded or invalid file.');
+            return redirect()->to(base_url('profile'));
+        }
+
+        // Validate type and size
+        $allowed = ['image/jpeg','image/png','image/gif','image/webp'];
+        if (!in_array($file->getMimeType(), $allowed)) {
+            session()->setFlashdata('error', 'Only JPG, PNG, GIF or WEBP images are allowed.');
+            return redirect()->to(base_url('profile'));
+        }
+        if ($file->getSize() > 2 * 1024 * 1024) {
+            session()->setFlashdata('error', 'Image must be under 2MB.');
+            return redirect()->to(base_url('profile'));
+        }
+
+        // Save to writable/uploads/avatars — CI4 writable dir has correct web server permissions
+        $uploadDir = WRITEPATH . 'uploads/avatars/';
+        // directory pre-created on server with correct permissions
+
+        // Delete old avatar file if it exists
+        $oldUser = $this->userModel->find($userId);
+        if (!empty($oldUser['avatar_url'])) {
+            $oldFile = $uploadDir . basename(parse_url($oldUser['avatar_url'], PHP_URL_PATH));
+            if (file_exists($oldFile)) unlink($oldFile);
+        }
+
+        // Save using native move_uploaded_file
+        $newName  = 'avatar_' . $userId . '_' . time() . '.' . $file->getExtension();
+        $destPath = $uploadDir . $newName;
+        $tmpPath  = $file->getTempName();
+
+        if (!move_uploaded_file($tmpPath, $destPath)) {
+            session()->setFlashdata('error', 'Failed to save image. Please try again.');
+            return redirect()->to(base_url('profile'));
+        }
+
+        // Store the filename only — served via /avatar-img route
+        $avatarUrl = base_url('profile/avatar-img/' . $newName);
+        $this->userModel->update($userId, ['avatar_url' => $avatarUrl]);
+        session()->set('avatar_url', $avatarUrl);
+
+        session()->setFlashdata('success', 'Profile picture updated!');
+        return redirect()->to(base_url('profile'));
+    }
+
+    // POST /profile/remove-avatar ─────────────────────────────
+    public function removeAvatar(): \CodeIgniter\HTTP\RedirectResponse {
+        if ($r = $this->requireLogin()) return $r;
+
+        $userId = session()->get('user_id');
+        $user   = $this->userModel->find($userId);
+
+        if (!empty($user['avatar_url'])) {
+            $uploadDir = WRITEPATH . 'uploads/avatars/';
+            $oldPath   = $uploadDir . basename(parse_url($user['avatar_url'], PHP_URL_PATH));
+            if (file_exists($oldPath)) unlink($oldPath);
+        }
+
+        $this->userModel->update($userId, ['avatar_url' => null]);
+        session()->remove('avatar_url');
+
+        session()->setFlashdata('success', 'Profile picture removed.');
+        return redirect()->to(base_url('profile'));
+    }
+
+
+    // GET /profile/avatar-img/(:segment) — serve avatar from writable dir
+    public function avatarImg(string $filename): \CodeIgniter\HTTP\ResponseInterface {
+        $path = WRITEPATH . 'uploads/avatars/' . basename($filename);
+        if (!file_exists($path)) {
+            return $this->response->setStatusCode(404);
+        }
+        $mime = mime_content_type($path) ?: 'image/jpeg';
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Cache-Control', 'public, max-age=86400')
+            ->setBody(file_get_contents($path));
+    }
+
 }
