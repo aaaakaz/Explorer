@@ -126,6 +126,28 @@ class Places extends BaseController {
     $breakdown = $this->reviewModel->getRatingBreakdown($id);
     $related   = $this->placeModel->getRelated($place['category_id'], $id, 3);
 
+    // Track recently viewed (logged-in users only)
+    $userId = session()->get('user_id');
+    if ($userId) {
+        $existing = $this->db->table('recently_viewed')
+            ->where('user_id', $userId)
+            ->where('place_id', $id)
+            ->get()->getRowArray();
+        if ($existing) {
+            // Update timestamp so it bubbles to top
+            $this->db->table('recently_viewed')
+                ->where('user_id', $userId)
+                ->where('place_id', $id)
+                ->update(['viewed_at' => date('Y-m-d H:i:s')]);
+        } else {
+            $this->db->table('recently_viewed')->insert([
+                'user_id'   => $userId,
+                'place_id'  => $id,
+                'viewed_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+
     return view('layouts/main', [
         'title'   => $place['name'] . ' | Explorer',
         'content' => view('places/detail', [
@@ -251,34 +273,6 @@ $new    = array_values(array_filter($review, fn($r) => $r['id'] == $this->db->in
             'icon'        => $w['weather'][0]['icon'],
             'wind_speed'  => round($w['wind']['speed'] * 3.6),
             'city_name'   => $w['name'],
-        ]);
-    }
-
-    // GET /places/filter — AJAX filtered/paginated place listing
-    public function filter(): \CodeIgniter\HTTP\ResponseInterface {
-        $category = $this->request->getGet('category') ?? '';
-        $sort     = $this->request->getGet('sort')     ?? 'newest';
-        $search   = $this->request->getGet('q')        ?? '';
-        $price    = $this->request->getGet('price')    ?? '';
-        $rating   = (float)($this->request->getGet('rating') ?? 0);
-        $page     = max(1, (int)($this->request->getGet('page') ?? 1));
-        $perPage  = 9;
-        $offset   = ($page - 1) * $perPage;
-
-        $places  = $this->placeModel->getFiltered($category, $sort, $search, $perPage, $offset, $price, $rating);
-        $total   = $this->placeModel->countFiltered($category, $search, $price, $rating);
-        $showing = $offset + count($places);
-
-        $html = '';
-        foreach ($places as $p) {
-            $html .= view('places/_card', ['place' => $p]);
-        }
-
-        return $this->response->setJSON([
-            'html'    => $html,
-            'total'   => $total,
-            'showing' => $showing,
-            'hasMore' => $showing < $total,
         ]);
     }
 

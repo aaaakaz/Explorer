@@ -7,14 +7,20 @@
 
             <!-- Avatar -->
             <div class="profile-avatar-wrap">
+                <?php if (!empty($user['avatar_url'])): ?>
+                <div class="profile-avatar profile-avatar-img" id="profileAvatar">
+                    <img src="<?= esc($user['avatar_url']) ?>" alt="<?= esc($user['username']) ?>">
+                </div>
+                <?php else: ?>
                 <div class="profile-avatar" id="profileAvatar"
                      style="background:<?= esc($user['avatar_color']) ?>">
                     <?= strtoupper(substr($user['username'], 0, 1)) ?>
                 </div>
-                <!-- Colour picker trigger -->
+                <?php endif; ?>
+                <!-- Edit trigger -->
                 <button class="avatar-edit-btn" data-bs-toggle="modal" data-bs-target="#avatarModal"
-                        title="Change colour">
-                    <i class="bi bi-pencil-fill"></i>
+                        title="Change profile picture">
+                    <i class="bi bi-camera-fill"></i>
                 </button>
             </div>
 
@@ -40,6 +46,10 @@
                     <div class="profile-stat-num"><?= $visitedCount ?></div>
                     <div class="profile-stat-label">Places Visited</div>
                 </div>
+		<div class="profile-stat">
+   		    <div class="profile-stat-num"><?= $savedCount ?></div>
+  		    <div class="profile-stat-label">Saved Places</div>
+		</div>
             </div>
         </div>
     </div>
@@ -239,66 +249,217 @@
         </div>
     </div>
 </div>
+		<!-- Saved Places -->
+<div class="profile-card mt-4">
+    <div class="profile-card-header">
+        <i class="bi bi-heart-fill me-2 text-danger"></i>Saved Places
+        <span class="badge bg-warning text-dark ms-2"><?= $savedCount ?></span>
+    </div>
+    <div class="profile-card-body">
+        <?php if (empty($savedPlaces)): ?>
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-heart display-5 d-block mb-3"></i>
+            <p>No saved places yet.</p>
+            <a href="<?= base_url('places') ?>" class="btn btn-warning btn-sm">Explore Places</a>
+        </div>
+        <?php else: ?>
+        <div class="row g-3">
+            <?php foreach ($savedPlaces as $place): ?>
+            <div class="col-sm-6 col-md-4">
+                <a href="<?= base_url('places/' . $place['id']) ?>" class="recently-viewed-card">
+                    <div class="rv-img">
+                        <?php if ($place['photo_url']): ?>
+                        <img src="<?= esc($place['photo_url']) ?>" alt="<?= esc($place['name']) ?>">
+                        <?php else: ?>
+                        <div class="rv-gradient" style="background:<?= esc($place['category_color'] ?? '#6b7280') ?>"></div>
+                        <?php endif; ?>
+                        <span class="rv-badge" style="background:<?= esc($place['category_color'] ?? '#6b7280') ?>">
+                            <i class="bi <?= esc($place['category_icon'] ?? 'bi-pin-map') ?>"></i>
+                        </span>
+                    </div>
+                    <div class="rv-body">
+                        <div class="rv-name"><?= esc($place['name']) ?></div>
+                        <div class="rv-city text-muted small">
+                            <i class="bi bi-geo-alt-fill text-danger me-1"></i><?= esc($place['city']) ?>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
 
-<!-- ── Avatar colour modal ─────────────────────────────────── -->
+<!-- ── Avatar modal (photo upload + colour) ───────────────── -->
 <div class="modal fade" id="avatarModal" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold">Choose Avatar Colour</h6>
+                <h6 class="modal-title fw-bold"><i class="bi bi-person-circle me-2"></i>Profile Picture</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form action="<?= base_url('profile/avatar') ?>" method="post" id="avatarForm">
-                    <input type="hidden" name="color" id="selectedColor"
-                           value="<?= esc($user['avatar_color']) ?>">
-                    <div class="avatar-colour-grid">
-                        <?php
-                        $colours = [
-                            '#f59e0b','#3b82f6','#10b981','#ef4444',
-                            '#8b5cf6','#f97316','#06b6d4','#ec4899',
-                            '#14b8a6','#a855f7',
-                        ];
-                        foreach ($colours as $c):
-                        ?>
-                        <button type="button"
-                                class="colour-swatch <?= $user['avatar_color'] === $c ? 'selected' : '' ?>"
-                                style="background:<?= $c ?>"
-                                data-color="<?= $c ?>"
-                                title="<?= $c ?>">
-                            <?php if ($user['avatar_color'] === $c): ?>
-                            <i class="bi bi-check-lg text-white"></i>
-                            <?php endif; ?>
-                        </button>
-                        <?php endforeach; ?>
+
+                <!-- Current avatar preview -->
+                <div class="text-center mb-4">
+                    <?php if (!empty($user['avatar_url'])): ?>
+                    <img src="<?= esc($user['avatar_url']) ?>" alt="avatar"
+                         id="avatarModalPreviewImg"
+                         class="rounded-circle border border-3 border-warning"
+                         style="width:90px;height:90px;object-fit:cover">
+                    <?php else: ?>
+                    <div class="profile-avatar mx-auto" id="avatarModalPreviewLetter"
+                         style="background:<?= esc($user['avatar_color']) ?>;width:90px;height:90px;font-size:2rem">
+                        <?= strtoupper(substr($user['username'], 0, 1)) ?>
                     </div>
-                    <!-- Preview -->
-                    <div class="text-center mt-3 mb-2">
-                        <div class="profile-avatar mx-auto" id="avatarPreview"
-                             style="background:<?= esc($user['avatar_color']) ?>;width:60px;height:60px;font-size:1.5rem">
-                            <?= strtoupper(substr($user['username'], 0, 1)) ?>
+                    <?php endif; ?>
+                    <div class="mt-2 text-muted small">Current picture</div>
+                </div>
+
+                <!-- Tab nav -->
+                <ul class="nav nav-pills nav-fill mb-3" id="avatarTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-tab="upload">
+                            <i class="bi bi-upload me-1"></i>Upload Photo
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-tab="colour">
+                            <i class="bi bi-palette me-1"></i>Choose Colour
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Upload tab -->
+                <div id="tabUpload">
+                    <form action="<?= base_url('profile/upload-avatar') ?>" method="post"
+                          enctype="multipart/form-data" id="uploadAvatarForm">
+                        <div class="avatar-upload-zone" id="avatarDropZone">
+                            <i class="bi bi-cloud-arrow-up display-6 text-muted d-block mb-2"></i>
+                            <p class="mb-1 fw-medium">Drag & drop or click to upload</p>
+                            <p class="text-muted small mb-0">JPG, PNG, GIF or WEBP · Max 2MB</p>
+                            <input type="file" name="avatar_image" id="avatarFileInput"
+                                   accept="image/jpeg,image/png,image/gif,image/webp"
+                                   class="avatar-file-input">
                         </div>
-                        <small class="text-muted d-block mt-1">Preview</small>
-                    </div>
-                    <div class="d-grid mt-3">
-                        <button type="submit" class="btn btn-warning fw-semibold">
-                            Save Colour
-                        </button>
-                    </div>
-                </form>
+                        <div id="avatarPreviewWrap" class="text-center mt-3 d-none">
+                            <img id="avatarNewPreview" src="" alt="preview"
+                                 class="rounded-circle border border-3 border-warning"
+                                 style="width:80px;height:80px;object-fit:cover">
+                            <div class="text-muted small mt-1">New picture preview</div>
+                        </div>
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-warning fw-semibold" id="uploadAvatarBtn" disabled>
+                                <i class="bi bi-check-circle me-2"></i>Save Photo
+                            </button>
+                        </div>
+                    </form>
+                    <?php if (!empty($user['avatar_url'])): ?>
+                    <form action="<?= base_url('profile/remove-avatar') ?>" method="post" class="mt-2">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Remove profile picture?')">
+                                <i class="bi bi-trash me-1"></i>Remove Photo
+                            </button>
+                        </div>
+                    </form>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Colour tab -->
+                <div id="tabColour" class="d-none">
+                    <form action="<?= base_url('profile/avatar') ?>" method="post" id="avatarForm">
+                        <input type="hidden" name="color" id="selectedColor"
+                               value="<?= esc($user['avatar_color']) ?>">
+                        <div class="avatar-colour-grid">
+                            <?php
+                            $colours = [
+                                '#f59e0b','#3b82f6','#10b981','#ef4444',
+                                '#8b5cf6','#f97316','#06b6d4','#ec4899',
+                                '#14b8a6','#a855f7',
+                            ];
+                            foreach ($colours as $c):
+                            ?>
+                            <button type="button"
+                                    class="colour-swatch <?= $user['avatar_color'] === $c ? 'selected' : '' ?>"
+                                    style="background:<?= $c ?>"
+                                    data-color="<?= $c ?>"
+                                    title="<?= $c ?>">
+                                <?php if ($user['avatar_color'] === $c): ?>
+                                <i class="bi bi-check-lg text-white"></i>
+                                <?php endif; ?>
+                            </button>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-warning fw-semibold">
+                                <i class="bi bi-palette me-2"></i>Save Colour
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// Colour swatch picker
+// ── Tab switcher ──────────────────────────────────────────────
+document.querySelectorAll('#avatarTabs .nav-link').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('#avatarTabs .nav-link').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('tabUpload').classList.toggle('d-none', this.dataset.tab !== 'upload');
+        document.getElementById('tabColour').classList.toggle('d-none', this.dataset.tab !== 'colour');
+    });
+});
+
+// ── File input / drag-drop ────────────────────────────────────
+const dropZone   = document.getElementById('avatarDropZone');
+const fileInput  = document.getElementById('avatarFileInput');
+const previewWrap = document.getElementById('avatarPreviewWrap');
+const newPreview = document.getElementById('avatarNewPreview');
+const uploadBtn  = document.getElementById('uploadAvatarBtn');
+
+dropZone?.addEventListener('click', () => fileInput?.click());
+
+dropZone?.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone?.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone?.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+fileInput?.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+    if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        newPreview.src = e.target.result;
+        previewWrap.classList.remove('d-none');
+        uploadBtn.disabled = false;
+    };
+    reader.readAsDataURL(file);
+    // Transfer to real input if dropped
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+}
+
+// ── Colour swatch picker ──────────────────────────────────────
 document.querySelectorAll('.colour-swatch').forEach(btn => {
     btn.addEventListener('click', function() {
         const color = this.dataset.color;
         document.getElementById('selectedColor').value = color;
-        document.getElementById('avatarPreview').style.background = color;
-
+        const letter = document.getElementById('avatarModalPreviewLetter');
+        if (letter) letter.style.background = color;
         document.querySelectorAll('.colour-swatch').forEach(b => {
             b.innerHTML = '';
             b.classList.remove('selected');

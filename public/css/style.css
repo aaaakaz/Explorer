@@ -1126,3 +1126,91 @@ body, .place-card, .filter-sidebar, .info-card,
         border-radius: var(--radius) var(--radius) 0 0;
     }
 }
+/* ── Favourite button ────────────────────────────────────────── */
+.fav-btn {
+    background: none;
+    border: none;
+    padding: .2rem .3rem;
+    color: #d1d5db;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color var(--trans), transform var(--trans);
+    flex-shrink: 0;
+    line-height: 1;
+}
+.fav-btn:hover { color: #ef4444; transform: scale(1.2); }
+.fav-btn.saved { color: #ef4444; }
+.fav-btn.saved i { animation: heartPop .3s ease; }
+
+@keyframes heartPop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+[data-theme="dark"] .fav-btn { color: #4b5563; }
+[data-theme="dark"] .fav-btn:hover,
+[data-theme="dark"] .fav-btn.saved { color: #ef4444; }
+/* ── Profile Picture Upload ──────────────────────────────────── */
+.profile-avatar-img {
+    padding: 0;
+    overflow: hidden;
+}
+.profile-avatar-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+.avatar-edit-btn {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid #fff;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    cursor: pointer;
+    transition: transform .2s;
+    z-index: 2;
+}
+.avatar-edit-btn:hover { transform: scale(1.12); }
+
+.avatar-upload-zone {
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 12px;
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: border-color .2s, background .2s;
+}
+.avatar-upload-zone:hover,
+.avatar-upload-zone.dragover {
+    border-color: var(--primary);
+    background: rgba(245,158,11,.06);
+}
+.avatar-file-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+#avatarTabs .nav-link {
+    border-radius: 8px;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--bs-body-color);
+}
+#avatarTabs .nav-link.active {
+    background: var(--primary);
+    color: #fff;
+}

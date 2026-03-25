@@ -2,17 +2,17 @@
   <a href="<?= base_url('places/' . $place['id']) ?>" class="place-card-link">
     <div class="place-card h-100">
 
-      <!-- Image area with gradient fallback -->
+      <!-- Image -->
       <div class="place-card-img"
            data-place-id="<?= $place['id'] ?>"
            data-place-name="<?= esc($place['name']) ?>"
            data-place-city="<?= esc($place['city']) ?>">
         <?php if (!empty($place['photo_url'])): ?>
-    <img src="<?= esc($place['photo_url']) ?>" alt="<?= esc($place['name']) ?>"
-         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0;">
-<?php else: ?>
-    <div class="place-card-gradient"></div>
-<?php endif; ?>
+          <img src="<?= esc($place['photo_url']) ?>" alt="<?= esc($place['name']) ?>"
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0;">
+        <?php else: ?>
+          <div class="place-card-gradient"></div>
+        <?php endif; ?>
         <span class="place-cat-badge" style="background:<?= esc($place['category_color'] ?? '#6b7280') ?>">
           <i class="bi <?= esc($place['category_icon'] ?? 'bi-pin-map') ?> me-1"></i>
           <?= esc($place['category_name'] ?? 'Place') ?>
@@ -24,17 +24,31 @@
         <span class="place-price-badge"><?= $prices[$p] ?? '££' ?></span>
       </div>
 
+      <!-- Body -->
       <div class="place-card-body">
-        <h5 class="place-card-title"><?= esc($place['name']) ?></h5>
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <h5 class="place-card-title mb-0"><?= esc($place['name']) ?></h5>
+          <?php if (session()->get('logged_in')): ?>
+          <button class="fav-btn <?= !empty($place['is_saved']) ? 'saved' : '' ?>"
+                  data-place-id="<?= $place['id'] ?>"
+                  title="Save place"
+                  onclick="event.preventDefault(); toggleFav(this)">
+            <i class="bi bi-heart<?= !empty($place['is_saved']) ? '-fill' : '' ?>"></i>
+          </button>
+          <?php endif; ?>
+        </div>
         <p class="place-card-city">
           <i class="bi bi-geo-alt-fill text-danger me-1"></i>
           <?= esc($place['city']) ?><?= $place['country'] ? ', ' . esc($place['country']) : '' ?>
+          <?php if (!empty($place['distance_label'])): ?>
+          <span class="distance-badge">
+            <i class="bi bi-arrow-up-right me-1"></i><?= esc($place['distance_label']) ?>
+          </span>
+          <?php endif; ?>
         </p>
         <p class="place-card-desc">
           <?= esc(mb_strimwidth($place['description'] ?? '', 0, 90, '…')) ?>
         </p>
-
-        <!-- Star rating -->
         <?php
           $avg  = round((float)($place['avg_rating'] ?? 0), 1);
           $full = floor($avg);
@@ -56,6 +70,7 @@
           </span>
         </div>
       </div>
+
     </div>
   </a>
 </div>
