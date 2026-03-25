@@ -59,10 +59,26 @@ class Profile extends BaseController {
             ->join('categories c', 'c.id = p.category_id', 'left')
             ->join('reviews r2', 'r2.place_id = p.id', 'left')
             ->where('rv.user_id', $userId)
-            ->groupBy('rv.id')
+            ->groupBy('rv.id, rv.viewed_at')
             ->orderBy('rv.viewed_at', 'DESC')
             ->limit(12)
             ->get()->getResultArray();
+
+	// Saved places
+$savedPlaces = $db->table('favourites fv')
+    ->select('p.*, c.name AS category_name, c.color AS category_color,
+              c.icon AS category_icon, c.slug AS category_slug,
+              IFNULL(AVG(r.rating),0) AS avg_rating,
+              COUNT(r.id) AS review_count')
+    ->join('places p', 'p.id = fv.place_id', 'left')
+    ->join('categories c', 'c.id = p.category_id', 'left')
+    ->join('reviews r', 'r.place_id = p.id', 'left')
+    ->where('fv.user_id', $userId)
+    ->groupBy('p.id, fv.created_at')
+    ->orderBy('fv.created_at', 'DESC')
+    ->get()->getResultArray();
+
+$savedCount = count($savedPlaces);
 
         return view('layouts/main', [
             'title'          => esc($user['username']) . "'s Profile | Explorer",
@@ -70,8 +86,10 @@ class Profile extends BaseController {
                 'user'           => $user,
                 'reviewCount'    => $reviewCount,
                 'visitedCount'   => $visitedCount,
+		'savedCount'     => $savedCount,
                 'reviews'        => $reviews,
                 'recentlyViewed' => $recentlyViewed,
+		'savedPlaces'    => $savedPlaces,
             ])
         ]);
     }
